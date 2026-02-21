@@ -1,98 +1,122 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { API_URL } from "../lib/api";
-import { withPageAuthRequired } from "@auth0/nextjs-auth0";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import UserActions from "./UserActions";
+import { API_URL } from "@/app/lib/api";
 
-export default function CreateUserPage() {
-  const router = useRouter();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    role: "USER",
-  });
-  const [loading, setLoading] = useState(false);
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+export default function UsersPage() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  const fetchUsers = async () => {
     try {
+      setLoading(true);
+      setError(null);
+
       const res = await fetch(`${API_URL}/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+        cache: "no-store",
       });
 
-      if (res.ok) {
-        // Redirect back to the users list after success
-        router.push("/users");
-        router.refresh(); // Refresh server components to show new data
-      } else {
-        const errorData = await res.json();
-        alert(`Error: ${errorData.message}`);
+      if (!res.ok) {
+        throw new Error("Failed to fetch users");
       }
-    } catch (error) {
-      console.error("Failed to create user:", error);
-      alert("Something went wrong. Is the server running?");
+
+      const data: User[] = await res.json();
+      setUsers(data);
+    } catch (err) {
+      console.error(err);
+      setError("Unable to connect to server");
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg">
-      <h1 className="text-2xl font-bold mb-6">Add New User</h1>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Name</label>
-          <input
-            type="text"
-            required
-            className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
-          <input
-            type="email"
-            required
-            className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Role</label>
-          <select
-            className="w-full border p-2 rounded outline-none"
-            value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+    <main className="min-h-screen bg-gray-50 py-12">
+      <div className="mx-auto max-w-4xl px-4">
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-800">Users</h1>
+          <Link
+            href="/users/create"
+            className="rounded bg-blue-600 px-4 py-2 text-white shadow-sm transition hover:bg-blue-700"
           >
-            <option value="USER">User</option>
-            <option value="ADMIN">Admin</option>
-          </select>
+            Add New
+          </Link>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className={`w-full py-2 rounded text-white font-bold transition-all ${
-            loading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-          }`}
-        >
-          {loading ? "Saving..." : "Create User"}
-        </button>
-      </form>
-    </div>
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          {loading ? (
+            <div className="p-8 text-center text-gray-500 animate-pulse">
+              Loading users...
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center text-red-500">{error}</div>
+          ) : (
+            <table className="w-full border-collapse text-left">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-700">
+                    Name
+                  </th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-700">
+                    Email
+                  </th>
+                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-gray-100">
+                {users.length > 0 ? (
+                  users.map((user) => (
+                    <tr
+                      key={user._id}
+                      className="transition hover:bg-gray-50"
+                    >
+                      <td className="px-6 py-4 font-medium text-gray-800">
+                        {user.name}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {user.email}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <UserActions
+                          userId={user._id}
+                          onDeleted={fetchUsers}
+                        />
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={3}
+                      className="px-6 py-10 text-center text-gray-400"
+                    >
+                      No users found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </main>
   );
 }
- 
