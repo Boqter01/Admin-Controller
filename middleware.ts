@@ -1,18 +1,24 @@
-import type { NextRequest } from "next/server";
-import { auth0 } from "./app/lib/auth0";
+// import type { NextRequest } from "next/server";
+// import { NextResponse } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  return await auth0.middleware(request);
-}
+// export function middleware(request: NextRequest) {
+//   return NextResponse.next();
+// }
+
+// export const config = {
+//   matcher: [
+//     "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+//   ],
+// };
+
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+
+const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)'])
+
+export default clerkMiddleware(async (auth, request) => {
+  if (!isPublicRoute(request)) await auth.protect()
+})
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico, sitemap.xml, robots.txt (metadata files)
-     */
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
-  ],
-};
+  matcher: ['/((?!_next|.*\\..*).*)'],
+}

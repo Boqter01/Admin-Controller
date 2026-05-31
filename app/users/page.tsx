@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import UserActions from "./UserActions";
-import { API_URL } from "@/app/lib/api";
+import { API_URL } from "@/lib/api";
 
 interface User {
   _id: string;
@@ -13,23 +13,23 @@ interface User {
   createdAt: string;
 }
 
+const roleBadge = (role: string) =>
+  role?.toLowerCase() === "admin"
+    ? "bg-purple-100 text-purple-700"
+    : "bg-blue-100 text-blue-700";
+
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers]     = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]     = useState<string | null>(null);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const res = await fetch(`${API_URL}/users`, {
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch users");
-      }
+      const res = await fetch(`${API_URL}/users`, { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch users");
 
       const data: User[] = await res.json();
       setUsers(data);
@@ -41,73 +41,109 @@ export default function UsersPage() {
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useEffect(() => { fetchUsers(); }, []);
 
   return (
-    <main className="min-h-screen bg-gray-50 py-12">
+    <main className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-4xl px-4">
-        <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-800">Users</h1>
+
+        {/* Header */}
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Users</h1>
+            {!loading && !error && (
+              <p className="mt-0.5 text-sm text-gray-500">{users.length} total</p>
+            )}
+          </div>
           <Link
             href="/users/create"
-            className="rounded bg-blue-600 px-4 py-2 text-white shadow-sm transition hover:bg-blue-700"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
           >
-            Add New
+            + Add New
           </Link>
         </div>
 
+        {/* Card */}
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          {loading ? (
-            <div className="p-8 text-center text-gray-500 animate-pulse">
-              Loading users...
+
+          {/* Loading skeleton */}
+          {loading && (
+            <div className="space-y-3 p-6">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-12 animate-pulse rounded-lg bg-gray-100" />
+              ))}
             </div>
-          ) : error ? (
-            <div className="p-8 text-center text-red-500">{error}</div>
-          ) : (
-            <table className="w-full border-collapse text-left">
+          )}
+
+          {/* Error */}
+          {!loading && error && (
+            <div className="flex flex-col items-center gap-3 py-16 text-center">
+              <span className="text-4xl">⚠️</span>
+              <p className="font-medium text-red-500">{error}</p>
+              <button
+                onClick={fetchUsers}
+                className="rounded-lg border border-gray-200 px-4 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Table */}
+          {!loading && !error && (
+            <table className="w-full border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-700">
-                    Name
-                  </th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-700">
-                    Email
-                  </th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">
-                    Actions
-                  </th>
+                <tr className="border-b bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <th className="px-6 py-3">Name</th>
+                  <th className="px-6 py-3">Email</th>
+                  <th className="px-6 py-3">Role</th>
+                  <th className="px-6 py-3">Created At</th>
+                  <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-
               <tbody className="divide-y divide-gray-100">
                 {users.length > 0 ? (
                   users.map((user) => (
-                    <tr
-                      key={user._id}
-                      className="transition hover:bg-gray-50"
-                    >
-                      <td className="px-6 py-4 font-medium text-gray-800">
-                        {user.name}
+                    <tr key={user._id} className="transition hover:bg-gray-50">
+
+                      {/* Name + initials avatar */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">
+                            {user.name?.split(" ").map((n) => n[0]).join("").toUpperCase() ?? "?"}
+                          </div>
+                          <span className="font-medium text-gray-800">{user.name}</span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {user.email}
+
+                      {/* Email */}
+                      <td className="px-6 py-4 text-gray-600">{user.email}</td>
+
+                      {/* Role badge */}
+                      <td className="px-6 py-4">
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${roleBadge(user.role)}`}>
+                          {user.role}
+                        </span>
                       </td>
+
+                      {/* Created At */}
+                      <td className="px-6 py-4 text-gray-500">
+                        {user.createdAt
+                          ? new Date(user.createdAt).toLocaleDateString("en-US", {
+                              year: "numeric", month: "short", day: "numeric",
+                            })
+                          : "—"}
+                      </td>
+
+                      {/* Actions */}
                       <td className="px-6 py-4 text-right">
-                        <UserActions
-                          userId={user._id}
-                          onDeleted={fetchUsers}
-                        />
+                        <UserActions userId={user._id} onDeleted={fetchUsers} />
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td
-                      colSpan={3}
-                      className="px-6 py-10 text-center text-gray-400"
-                    >
+                    <td colSpan={5} className="py-14 text-center text-gray-400">
                       No users found.
                     </td>
                   </tr>

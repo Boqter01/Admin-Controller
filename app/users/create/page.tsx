@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_URL } from "@/app/lib/api"
+import { API_URL } from "@/lib/api"
 import Link from "next/link";
 
 export default function CreateUserPage() {

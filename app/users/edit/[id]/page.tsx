@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { API_URL } from "@/app/lib/api";
+import { API_URL } from "@/lib/api";
 import Link from "next/dist/client/link";
 
 export default function EditUserPage() {
@@ -37,7 +37,7 @@ export default function EditUserPage() {
   };
 
   return (
-    <div className="p-6 max-w-md mx-auto bg-amber-50">
+    <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg">
       <h1 className="text-xl font-bold mb-4">Edit User</h1>
 
   <form onSubmit={handleSubmit} className="space-y-4">
